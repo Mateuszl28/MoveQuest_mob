@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Liczenie kroków na żywo (czujnik aktywności fizycznej) -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+    <!-- Pobieranie kafelków mapy (OpenStreetMap) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="movequest_mob"
+        android:label="MoveQuest"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

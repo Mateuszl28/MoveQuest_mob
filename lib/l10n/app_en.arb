@@ -18,12 +18,21 @@
   "statCalories": "Calories",
   "statActivity": "Activity",
   "homeActiveQuests": "Active quests",
-  "questWalkParkTitle": "Walk to the park",
-  "questWalkParkSubtitle": "Cover 2 km on foot",
-  "questMorningTitle": "Morning boost",
-  "questMorningSubtitle": "Be active before 9:00",
-  "questExplorerTitle": "Explorer",
-  "questExplorerSubtitle": "Visit a new point on the map",
+  "liveLabel": "LIVE",
+  "homeDailyGoalReached": "Daily goal reached!",
+  "activityPermissionTitle": "Track your activity",
+  "activityPermissionBody": "MoveQuest counts your steps live using your phone's activity sensor. Allow access to get started.",
+  "activityPermissionButton": "Allow access",
+  "activityUnavailable": "Step sensor is not available on this device.",
+  "questStepGoalTitle": "Step goal",
+  "questStepGoalSubtitle": "Reach {goal} steps today",
+  "@questStepGoalSubtitle": {
+    "placeholders": { "goal": { "type": "int", "format": "decimalPattern" } }
+  },
+  "questDistanceTitle": "Go the distance",
+  "questDistanceSubtitle": "Cover 2 km on foot",
+  "questActiveTitle": "Keep moving",
+  "questActiveSubtitle": "Be active for 30 minutes",
 
   "mapQuestsNearby": "{count} quests nearby",
   "@mapQuestsNearby": {

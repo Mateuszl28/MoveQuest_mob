@@ -1,124 +1,277 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../activity/application/activity_controller.dart';
+import '../../activity/domain/activity_data.dart';
 
-/// Ekran „Dziś" – pulpit dzienny: postęp aktywności, punkty i aktywne questy.
-class HomeScreen extends StatelessWidget {
+/// Ekran „Dziś" – pulpit dzienny z danymi aktywności zbieranymi na żywo.
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   static const String path = '/';
 
   @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(activityProvider);
+    return SafeArea(
+      child: switch (state.status) {
+        ActivityStatus.loading => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        ActivityStatus.permissionRequired => const _PermissionPrompt(),
+        ActivityStatus.unavailable => const _UnavailableMessage(),
+        ActivityStatus.tracking => _Dashboard(data: state.data),
+      },
+    );
+  }
+}
+
+class _Dashboard extends StatelessWidget {
+  const _Dashboard({required this.data});
+
+  final ActivityData data;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.homeGreeting,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+    final localeName = Localizations.localeOf(context).toString();
+    final intFmt = NumberFormat.decimalPattern(localeName);
+    final kmFmt = NumberFormat('#,##0.0', localeName);
+
+    final goalProgress = (data.steps / kDailyStepGoal).clamp(0.0, 1.0);
+    final remaining = (kDailyStepGoal - data.steps).clamp(0, kDailyStepGoal);
+    final points = data.steps ~/ 10;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.homeGreeting,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.homeSubtitle,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          l10n.homeSubtitle,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                      if (data.isWalking) ...[
+                        const SizedBox(width: 8),
+                        const _LiveBadge(),
+                      ],
+                    ],
+                  ),
+                ],
               ),
-              const _PointsBadge(points: 1240),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _DailyGoalCard(
-            title: l10n.homeDailyGoal,
-            remaining: l10n.homeDailyGoalRemaining(3600),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.directions_walk,
-                  label: l10n.statSteps,
-                  value: '6 420',
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.route,
-                  label: l10n.statDistance,
-                  value: '4,8 km',
-                  color: AppColors.secondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.local_fire_department,
-                  label: l10n.statCalories,
-                  value: '312 kcal',
-                  color: AppColors.warning,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.timer_outlined,
-                  label: l10n.statActivity,
-                  value: '54 min',
-                  color: AppColors.accent,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.homeActiveQuests,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
             ),
+            _PointsBadge(points: points),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _DailyGoalCard(
+          progress: goalProgress,
+          title: l10n.homeDailyGoal,
+          remaining: remaining == 0
+              ? l10n.homeDailyGoalReached
+              : l10n.homeDailyGoalRemaining(remaining),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                icon: Icons.directions_walk,
+                label: l10n.statSteps,
+                value: intFmt.format(data.steps),
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.route,
+                label: l10n.statDistance,
+                value: '${kmFmt.format(data.distanceKm)} km',
+                color: AppColors.secondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                icon: Icons.local_fire_department,
+                label: l10n.statCalories,
+                value: '${intFmt.format(data.calories)} kcal',
+                color: AppColors.warning,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.timer_outlined,
+                label: l10n.statActivity,
+                value: '${data.activeMinutes} min',
+                color: AppColors.accent,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Text(
+          l10n.homeActiveQuests,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(height: 12),
-          _QuestTile(
-            title: l10n.questWalkParkTitle,
-            subtitle: l10n.questWalkParkSubtitle,
-            progress: 0.6,
-            reward: 150,
-          ),
-          const SizedBox(height: 10),
-          _QuestTile(
-            title: l10n.questMorningTitle,
-            subtitle: l10n.questMorningSubtitle,
-            progress: 1.0,
-            reward: 80,
-          ),
-          const SizedBox(height: 10),
-          _QuestTile(
-            title: l10n.questExplorerTitle,
-            subtitle: l10n.questExplorerSubtitle,
-            progress: 0.0,
-            reward: 200,
+        ),
+        const SizedBox(height: 12),
+        _QuestTile(
+          title: l10n.questStepGoalTitle,
+          subtitle: l10n.questStepGoalSubtitle(kDailyStepGoal),
+          progress: goalProgress,
+          reward: 150,
+        ),
+        const SizedBox(height: 10),
+        _QuestTile(
+          title: l10n.questDistanceTitle,
+          subtitle: l10n.questDistanceSubtitle,
+          progress: (data.distanceKm / 2).clamp(0.0, 1.0),
+          reward: 200,
+        ),
+        const SizedBox(height: 10),
+        _QuestTile(
+          title: l10n.questActiveTitle,
+          subtitle: l10n.questActiveSubtitle,
+          progress: (data.activeMinutes / 30).clamp(0.0, 1.0),
+          reward: 120,
+        ),
+      ],
+    );
+  }
+}
+
+/// Prośba o uprawnienie do aktywności fizycznej.
+class _PermissionPrompt extends ConsumerWidget {
+  const _PermissionPrompt();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.directions_walk,
+                  size: 56, color: AppColors.primary),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l10n.activityPermissionTitle,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              l10n.activityPermissionBody,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 28),
+            FilledButton.icon(
+              onPressed: () =>
+                  ref.read(activityProvider.notifier).requestPermission(),
+              icon: const Icon(Icons.check_circle_outline),
+              label: Text(l10n.activityPermissionButton),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UnavailableMessage extends StatelessWidget {
+  const _UnavailableMessage();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.sensors_off,
+                size: 56, color: AppColors.textSecondary),
+            const SizedBox(height: 16),
+            Text(
+              l10n.activityUnavailable,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveBadge extends StatelessWidget {
+  const _LiveBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.fiber_manual_record,
+              size: 10, color: AppColors.success),
+          const SizedBox(width: 4),
+          Text(
+            AppLocalizations.of(context).liveLabel,
+            style: const TextStyle(
+              color: AppColors.success,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
           ),
         ],
       ),
@@ -157,14 +310,19 @@ class _PointsBadge extends StatelessWidget {
 }
 
 class _DailyGoalCard extends StatelessWidget {
-  const _DailyGoalCard({required this.title, required this.remaining});
+  const _DailyGoalCard({
+    required this.progress,
+    required this.title,
+    required this.remaining,
+  });
 
+  final double progress;
   final String title;
   final String remaining;
 
   @override
   Widget build(BuildContext context) {
-    const progress = 0.64;
+    final percent = (progress * 100).round();
     return Card(
       child: Container(
         decoration: const BoxDecoration(
@@ -183,19 +341,20 @@ class _DailyGoalCard extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  const SizedBox(
+                  SizedBox(
                     width: 64,
                     height: 64,
                     child: CircularProgressIndicator(
                       value: progress,
                       strokeWidth: 6,
                       backgroundColor: Colors.white24,
-                      valueColor: AlwaysStoppedAnimation(Colors.white),
+                      valueColor:
+                          const AlwaysStoppedAnimation(Colors.white),
                     ),
                   ),
-                  const Text(
-                    '64%',
-                    style: TextStyle(
+                  Text(
+                    '$percent%',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
