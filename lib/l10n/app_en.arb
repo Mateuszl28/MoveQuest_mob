@@ -1,0 +1,86 @@
+{
+  "@@locale": "en",
+
+  "navToday": "Today",
+  "navMap": "Map",
+  "navChallenges": "Challenges",
+  "navProfile": "Profile",
+
+  "homeGreeting": "Hi, Traveler!",
+  "homeSubtitle": "Ready for today's adventure?",
+  "homeDailyGoal": "Daily goal",
+  "homeDailyGoalRemaining": "{steps} steps left to your goal!",
+  "@homeDailyGoalRemaining": {
+    "placeholders": { "steps": { "type": "int", "format": "decimalPattern" } }
+  },
+  "statSteps": "Steps",
+  "statDistance": "Distance",
+  "statCalories": "Calories",
+  "statActivity": "Activity",
+  "homeActiveQuests": "Active quests",
+  "questWalkParkTitle": "Walk to the park",
+  "questWalkParkSubtitle": "Cover 2 km on foot",
+  "questMorningTitle": "Morning boost",
+  "questMorningSubtitle": "Be active before 9:00",
+  "questExplorerTitle": "Explorer",
+  "questExplorerSubtitle": "Visit a new point on the map",
+
+  "mapQuestsNearby": "{count} quests nearby",
+  "@mapQuestsNearby": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "mapQuestParkTreasure": "Park treasure",
+  "mapQuestViewpoint": "Viewpoint",
+  "mapQuestRiversideRun": "Riverside run",
+  "mapQuestDescription": "Reach this location to complete the quest and earn points.",
+  "mapNavigateToQuest": "Navigate to quest",
+
+  "challengesTitle": "Challenges",
+  "challenge1Title": "10,000 steps week",
+  "challenge1Subtitle": "With your group • 3 days left",
+  "challenge2Title": "Weekend quest marathon",
+  "challenge2Subtitle": "Complete 5 quests in the field",
+  "challengesLeaderboard": "Friends leaderboard",
+  "challengesYou": "You",
+  "challengesPercentComplete": "{percent}% complete",
+  "@challengesPercentComplete": {
+    "placeholders": { "percent": { "type": "int" } }
+  },
+
+  "profileName": "Traveler",
+  "profileLevelSubtitle": "Level {level} • Quest hunter",
+  "@profileLevelSubtitle": {
+    "placeholders": { "level": { "type": "int" } }
+  },
+  "profileExperience": "Experience",
+  "profileLevel": "Level {level}",
+  "@profileLevel": {
+    "placeholders": { "level": { "type": "int" } }
+  },
+  "profileXpProgress": "{xp} / {total} XP to level {next}",
+  "@profileXpProgress": {
+    "placeholders": {
+      "xp": { "type": "int", "format": "decimalPattern" },
+      "total": { "type": "int", "format": "decimalPattern" },
+      "next": { "type": "int" }
+    }
+  },
+  "profileStatQuests": "Quests",
+  "profileStatTotal": "Total",
+  "profileStatStreak": "Day streak",
+  "profileBadges": "Badges",
+  "badgeFirstStep": "First step",
+  "badgeExplorer": "Explorer",
+  "badgeMarathoner": "Marathoner",
+  "badgeEarlyBird": "Early bird",
+  "badgeMaster": "Master",
+  "badgeLegend": "Legend",
+  "profileLanguage": "Language",
+  "languageEnglish": "English",
+  "languagePolish": "Polski",
+
+  "notFound": "Not found: {uri}",
+  "@notFound": {
+    "placeholders": { "uri": { "type": "String" } }
+  }
+}

@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Punkt questu na mapie (model tymczasowy – docelowo z backendu).
 class _MapQuest {
@@ -37,31 +38,32 @@ class _MapScreenState extends State<MapScreen> {
   // Centrum startowe – Warszawa (placeholder do czasu wpięcia GPS).
   static const LatLng _initialCenter = LatLng(52.2297, 21.0122);
 
-  static const List<_MapQuest> _quests = [
-    _MapQuest(
-      title: 'Skarb w parku',
-      position: LatLng(52.2350, 21.0050),
-      reward: 200,
-      color: AppColors.accent,
-      icon: Icons.park,
-    ),
-    _MapQuest(
-      title: 'Punkt widokowy',
-      position: LatLng(52.2270, 21.0200),
-      reward: 150,
-      color: AppColors.secondary,
-      icon: Icons.visibility,
-    ),
-    _MapQuest(
-      title: 'Bieg nad rzeką',
-      position: LatLng(52.2230, 21.0300),
-      reward: 300,
-      color: AppColors.primary,
-      icon: Icons.directions_run,
-    ),
-  ];
+  List<_MapQuest> _buildQuests(AppLocalizations l10n) => [
+        _MapQuest(
+          title: l10n.mapQuestParkTreasure,
+          position: const LatLng(52.2350, 21.0050),
+          reward: 200,
+          color: AppColors.accent,
+          icon: Icons.park,
+        ),
+        _MapQuest(
+          title: l10n.mapQuestViewpoint,
+          position: const LatLng(52.2270, 21.0200),
+          reward: 150,
+          color: AppColors.secondary,
+          icon: Icons.visibility,
+        ),
+        _MapQuest(
+          title: l10n.mapQuestRiversideRun,
+          position: const LatLng(52.2230, 21.0300),
+          reward: 300,
+          color: AppColors.primary,
+          icon: Icons.directions_run,
+        ),
+      ];
 
   void _showQuest(_MapQuest quest) {
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -95,15 +97,15 @@ class _MapScreenState extends State<MapScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Dotrzyj do tego miejsca, aby ukończyć quest i zgarnąć punkty.',
-              style: TextStyle(color: AppColors.textSecondary),
+            Text(
+              l10n.mapQuestDescription,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.navigation),
-              label: const Text('Nawiguj do questu'),
+              label: Text(l10n.mapNavigateToQuest),
             ),
           ],
         ),
@@ -113,6 +115,8 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final quests = _buildQuests(l10n);
     return Scaffold(
       extendBodyBehindAppBar: true,
       body: Stack(
@@ -133,14 +137,15 @@ class _MapScreenState extends State<MapScreen> {
               ),
               MarkerLayer(
                 markers: [
-                  for (final quest in _quests)
+                  for (final quest in quests)
                     Marker(
                       point: quest.position,
                       width: 48,
                       height: 48,
                       child: GestureDetector(
                         onTap: () => _showQuest(quest),
-                        child: _QuestMarker(color: quest.color, icon: quest.icon),
+                        child:
+                            _QuestMarker(color: quest.color, icon: quest.icon),
                       ),
                     ),
                 ],
@@ -172,7 +177,7 @@ class _MapScreenState extends State<MapScreen> {
                       const Icon(Icons.explore, color: AppColors.primary),
                       const SizedBox(width: 8),
                       Text(
-                        '${_quests.length} questy w pobliżu',
+                        l10n.mapQuestsNearby(quests.length),
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ],

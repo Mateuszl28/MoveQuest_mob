@@ -3,21 +3,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movequest_mob/app.dart';
+import 'package:movequest_mob/core/locale/locale_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('Aplikacja startuje na ekranie „Dziś"', (tester) async {
+  testWidgets('Aplikacja startuje po angielsku na ekranie „Today"',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
     await tester.pumpWidget(
-      const ProviderScope(child: MoveQuestApp()),
+      ProviderScope(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        child: const MoveQuestApp(),
+      ),
     );
     await tester.pumpAndSettle();
 
-    // Powitanie na pulpicie dziennym.
-    expect(find.text('Cześć, Podróżniku!'), findsOneWidget);
+    // Domyślny język to angielski – powitanie na pulpicie.
+    expect(find.text('Hi, Traveler!'), findsOneWidget);
 
-    // Dolna nawigacja z czterema zakładkami.
-    expect(find.text('Dziś'), findsOneWidget);
-    expect(find.text('Mapa'), findsOneWidget);
-    expect(find.text('Wyzwania'), findsOneWidget);
-    expect(find.text('Profil'), findsOneWidget);
+    // Dolna nawigacja z czterema zakładkami (po angielsku).
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('Map'), findsOneWidget);
+    expect(find.text('Challenges'), findsWidgets);
+    expect(find.text('Profile'), findsOneWidget);
   });
 }

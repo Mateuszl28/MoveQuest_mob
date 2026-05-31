@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Ekran „Dziś" – pulpit dzienny: postęp aktywności, punkty i aktywne questy.
 class HomeScreen extends StatelessWidget {
@@ -11,6 +12,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -18,45 +20,50 @@ class HomeScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Cześć, Podróżniku!',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.homeGreeting,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Gotowy na dzisiejszą wyprawę?',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.homeSubtitle,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              _PointsBadge(points: 1240),
+              const _PointsBadge(points: 1240),
             ],
           ),
           const SizedBox(height: 20),
-          const _DailyGoalCard(),
+          _DailyGoalCard(
+            title: l10n.homeDailyGoal,
+            remaining: l10n.homeDailyGoalRemaining(3600),
+          ),
           const SizedBox(height: 16),
           Row(
-            children: const [
+            children: [
               Expanded(
                 child: _StatCard(
                   icon: Icons.directions_walk,
-                  label: 'Kroki',
+                  label: l10n.statSteps,
                   value: '6 420',
                   color: AppColors.primary,
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: _StatCard(
                   icon: Icons.route,
-                  label: 'Dystans',
+                  label: l10n.statDistance,
                   value: '4,8 km',
                   color: AppColors.secondary,
                 ),
@@ -65,20 +72,20 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Row(
-            children: const [
+            children: [
               Expanded(
                 child: _StatCard(
                   icon: Icons.local_fire_department,
-                  label: 'Kalorie',
+                  label: l10n.statCalories,
                   value: '312 kcal',
                   color: AppColors.warning,
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: _StatCard(
                   icon: Icons.timer_outlined,
-                  label: 'Aktywność',
+                  label: l10n.statActivity,
                   value: '54 min',
                   color: AppColors.accent,
                 ),
@@ -87,29 +94,29 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Aktywne questy',
+            l10n.homeActiveQuests,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 12),
-          const _QuestTile(
-            title: 'Spacer do parku',
-            subtitle: 'Pokonaj 2 km pieszo',
+          _QuestTile(
+            title: l10n.questWalkParkTitle,
+            subtitle: l10n.questWalkParkSubtitle,
             progress: 0.6,
             reward: 150,
           ),
           const SizedBox(height: 10),
-          const _QuestTile(
-            title: 'Poranny zryw',
-            subtitle: 'Bądź aktywny przed 9:00',
+          _QuestTile(
+            title: l10n.questMorningTitle,
+            subtitle: l10n.questMorningSubtitle,
             progress: 1.0,
             reward: 80,
           ),
           const SizedBox(height: 10),
-          const _QuestTile(
-            title: 'Odkrywca',
-            subtitle: 'Odwiedź nowy punkt na mapie',
+          _QuestTile(
+            title: l10n.questExplorerTitle,
+            subtitle: l10n.questExplorerSubtitle,
             progress: 0.0,
             reward: 200,
           ),
@@ -150,7 +157,10 @@ class _PointsBadge extends StatelessWidget {
 }
 
 class _DailyGoalCard extends StatelessWidget {
-  const _DailyGoalCard();
+  const _DailyGoalCard({required this.title, required this.remaining});
+
+  final String title;
+  final String remaining;
 
   @override
   Widget build(BuildContext context) {
@@ -197,19 +207,19 @@ class _DailyGoalCard extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
-                    'Dzienny cel',
-                    style: TextStyle(
+                    title,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Jeszcze 3 600 kroków do celu!',
-                    style: TextStyle(color: Colors.white70),
+                    remaining,
+                    style: const TextStyle(color: Colors.white70),
                   ),
                 ],
               ),

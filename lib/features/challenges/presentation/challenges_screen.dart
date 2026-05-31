@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Pozycja w rankingu (model tymczasowy).
 class _Ranked {
@@ -16,17 +17,19 @@ class ChallengesScreen extends StatelessWidget {
 
   static const String path = '/challenges';
 
-  static const List<_Ranked> _leaderboard = [
-    _Ranked('Ola K.', 3120),
-    _Ranked('Marek W.', 2870),
-    _Ranked('Ty', 2540, isMe: true),
-    _Ranked('Kasia P.', 2210),
-    _Ranked('Tomek L.', 1980),
-  ];
+  List<_Ranked> _leaderboard(AppLocalizations l10n) => [
+        const _Ranked('Ola K.', 3120),
+        const _Ranked('Marek W.', 2870),
+        _Ranked(l10n.challengesYou, 2540, isMe: true),
+        const _Ranked('Kasia P.', 2210),
+        const _Ranked('Tomek L.', 1980),
+      ];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final leaderboard = _leaderboard(l10n);
     return SafeArea(
       child: CustomScrollView(
         slivers: [
@@ -35,27 +38,27 @@ class ChallengesScreen extends StatelessWidget {
             sliver: SliverList.list(
               children: [
                 Text(
-                  'Wyzwania',
+                  l10n.challengesTitle,
                   style: theme.textTheme.headlineSmall
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
                 _ChallengeCard(
-                  title: 'Tydzień 10 000 kroków',
-                  subtitle: 'Z Twoją grupą • 3 dni do końca',
+                  title: l10n.challenge1Title,
+                  subtitle: l10n.challenge1Subtitle,
                   progress: 0.72,
                   participants: 4,
                 ),
                 const SizedBox(height: 12),
                 _ChallengeCard(
-                  title: 'Weekendowy maraton questów',
-                  subtitle: 'Ukończ 5 questów w terenie',
+                  title: l10n.challenge2Title,
+                  subtitle: l10n.challenge2Subtitle,
                   progress: 0.4,
                   participants: 12,
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Ranking znajomych',
+                  l10n.challengesLeaderboard,
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
@@ -66,9 +69,9 @@ class ChallengesScreen extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             sliver: SliverList.builder(
-              itemCount: _leaderboard.length,
+              itemCount: leaderboard.length,
               itemBuilder: (context, index) =>
-                  _RankTile(rank: index + 1, entry: _leaderboard[index]),
+                  _RankTile(rank: index + 1, entry: leaderboard[index]),
             ),
           ),
         ],
@@ -92,6 +95,7 @@ class _ChallengeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       color: Theme.of(context).colorScheme.surface,
       child: Padding(
@@ -136,7 +140,7 @@ class _ChallengeCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              '${(progress * 100).round()}% ukończone',
+              l10n.challengesPercentComplete((progress * 100).round()),
               style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 12,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../features/challenges/presentation/challenges_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/map/presentation/map_screen.dart';
@@ -57,7 +58,9 @@ final class AppRouter {
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
-      body: Center(child: Text('Nie znaleziono: ${state.uri}')),
+      body: Center(
+        child: Text(AppLocalizations.of(context).notFound(state.uri.toString())),
+      ),
     ),
   );
 }

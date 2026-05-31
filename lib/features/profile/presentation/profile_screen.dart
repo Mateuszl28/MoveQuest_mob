@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/locale/locale_controller.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Odznaka zdobyta przez użytkownika (model tymczasowy).
 class _Badge {
@@ -11,40 +14,39 @@ class _Badge {
   final bool unlocked;
 }
 
-/// Ekran „Profil" – poziom, doświadczenie i odznaki.
-class ProfileScreen extends StatelessWidget {
+/// Ekran „Profil" – poziom, doświadczenie, odznaki i wybór języka.
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   static const String path = '/profile';
 
-  static const List<_Badge> _badges = [
-    _Badge('Pierwszy krok', Icons.directions_walk, AppColors.primary),
-    _Badge('Odkrywca', Icons.explore, AppColors.secondary),
-    _Badge('Maratończyk', Icons.local_fire_department, AppColors.warning),
-    _Badge('Ranny ptaszek', Icons.wb_sunny, AppColors.accent),
-    _Badge('Mistrz', Icons.workspace_premium, AppColors.danger,
-        unlocked: false),
-    _Badge('Legenda', Icons.military_tech, AppColors.primaryDark,
-        unlocked: false),
-  ];
+  static const int _level = 7;
+
+  List<_Badge> _badges(AppLocalizations l10n) => [
+        _Badge(l10n.badgeFirstStep, Icons.directions_walk, AppColors.primary),
+        _Badge(l10n.badgeExplorer, Icons.explore, AppColors.secondary),
+        _Badge(l10n.badgeMarathoner, Icons.local_fire_department,
+            AppColors.warning),
+        _Badge(l10n.badgeEarlyBird, Icons.wb_sunny, AppColors.accent),
+        _Badge(l10n.badgeMaster, Icons.workspace_premium, AppColors.danger,
+            unlocked: false),
+        _Badge(l10n.badgeLegend, Icons.military_tech, AppColors.primaryDark,
+            unlocked: false),
+      ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final badges = _badges(l10n);
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.settings_outlined),
-            ),
-          ),
           Center(
             child: Column(
               children: [
+                const SizedBox(height: 8),
                 CircleAvatar(
                   radius: 44,
                   backgroundColor:
@@ -54,36 +56,36 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Podróżnik',
+                  l10n.profileName,
                   style: theme.textTheme.titleLarge
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const Text(
-                  'Poziom 7 • Łowca questów',
-                  style: TextStyle(color: AppColors.textSecondary),
+                Text(
+                  l10n.profileLevelSubtitle(_level),
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 20),
-          const _LevelCard(level: 7, xp: 2540, xpForNext: 3000),
+          const _LevelCard(level: _level, xp: 2540, xpForNext: 3000),
           const SizedBox(height: 20),
           Row(
-            children: const [
+            children: [
               Expanded(
-                child: _MiniStat(value: '38', label: 'Questy'),
+                child: _MiniStat(value: '38', label: l10n.profileStatQuests),
               ),
               Expanded(
-                child: _MiniStat(value: '142 km', label: 'Łącznie'),
+                child: _MiniStat(value: '142 km', label: l10n.profileStatTotal),
               ),
               Expanded(
-                child: _MiniStat(value: '12', label: 'Dni z rzędu'),
+                child: _MiniStat(value: '12', label: l10n.profileStatStreak),
               ),
             ],
           ),
           const SizedBox(height: 24),
           Text(
-            'Odznaki',
+            l10n.profileBadges,
             style: theme.textTheme.titleMedium
                 ?.copyWith(fontWeight: FontWeight.bold),
           ),
@@ -95,10 +97,47 @@ class ProfileScreen extends StatelessWidget {
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
             childAspectRatio: 0.9,
-            children: [for (final b in _badges) _BadgeTile(badge: b)],
+            children: [for (final b in badges) _BadgeTile(badge: b)],
           ),
+          const SizedBox(height: 24),
+          Text(
+            l10n.profileLanguage,
+            style: theme.textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          const _LanguageSelector(),
         ],
       ),
+    );
+  }
+}
+
+/// Przełącznik języka aplikacji (angielski / polski).
+class _LanguageSelector extends ConsumerWidget {
+  const _LanguageSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final locale = ref.watch(localeProvider);
+    return SegmentedButton<String>(
+      segments: [
+        ButtonSegment(
+          value: 'en',
+          label: Text(l10n.languageEnglish),
+          icon: const Icon(Icons.language),
+        ),
+        ButtonSegment(
+          value: 'pl',
+          label: Text(l10n.languagePolish),
+          icon: const Icon(Icons.flag_outlined),
+        ),
+      ],
+      selected: {locale.languageCode},
+      onSelectionChanged: (selection) {
+        ref.read(localeProvider.notifier).setLocale(Locale(selection.first));
+      },
     );
   }
 }
@@ -116,6 +155,7 @@ class _LevelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final progress = xp / xpForNext;
     return Card(
       child: Container(
@@ -133,16 +173,16 @@ class _LevelCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Doświadczenie',
-                  style: TextStyle(
+                Text(
+                  l10n.profileExperience,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
                 ),
                 Text(
-                  'Poziom $level',
+                  l10n.profileLevel(level),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -162,7 +202,7 @@ class _LevelCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '$xp / $xpForNext XP do poziomu ${level + 1}',
+              l10n.profileXpProgress(xp, xpForNext, level + 1),
               style: const TextStyle(color: Colors.white70, fontSize: 13),
             ),
           ],
@@ -188,6 +228,7 @@ class _MiniStat extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
+          textAlign: TextAlign.center,
           style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
         ),
       ],
