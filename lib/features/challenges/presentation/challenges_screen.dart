@@ -1,35 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
-
-/// Pozycja w rankingu (model tymczasowy).
-class _Ranked {
-  const _Ranked(this.name, this.points, {this.isMe = false});
-  final String name;
-  final int points;
-  final bool isMe;
-}
+import '../application/leaderboard_controller.dart';
 
 /// Ekran „Wyzwania" – rywalizacja ze znajomymi i ranking.
-class ChallengesScreen extends StatelessWidget {
+class ChallengesScreen extends ConsumerWidget {
   const ChallengesScreen({super.key});
 
   static const String path = '/challenges';
 
-  List<_Ranked> _leaderboard(AppLocalizations l10n) => [
-        const _Ranked('Ola K.', 3120),
-        const _Ranked('Marek W.', 2870),
-        _Ranked(l10n.challengesYou, 2540, isMe: true),
-        const _Ranked('Kasia P.', 2210),
-        const _Ranked('Tomek L.', 1980),
-      ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final leaderboard = _leaderboard(l10n);
+    final leaderboard = ref.watch(leaderboardProvider);
+
     return SafeArea(
       child: CustomScrollView(
         slivers: [
@@ -70,8 +57,18 @@ class ChallengesScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             sliver: SliverList.builder(
               itemCount: leaderboard.length,
-              itemBuilder: (context, index) =>
-                  _RankTile(rank: index + 1, entry: leaderboard[index]),
+              itemBuilder: (context, index) {
+                final entry = leaderboard[index];
+                final name = entry.isMe
+                    ? (entry.name ?? l10n.challengesYou)
+                    : (entry.name ?? '');
+                return _RankTile(
+                  rank: index + 1,
+                  name: name,
+                  points: entry.points,
+                  isMe: entry.isMe,
+                );
+              },
             ),
           ),
         ],
@@ -134,8 +131,7 @@ class _ChallengeCard extends StatelessWidget {
                 value: progress,
                 minHeight: 8,
                 backgroundColor: Colors.black12,
-                valueColor:
-                    const AlwaysStoppedAnimation(AppColors.primary),
+                valueColor: const AlwaysStoppedAnimation(AppColors.primary),
               ),
             ),
             const SizedBox(height: 6),
@@ -185,10 +181,17 @@ class _ParticipantsBadge extends StatelessWidget {
 }
 
 class _RankTile extends StatelessWidget {
-  const _RankTile({required this.rank, required this.entry});
+  const _RankTile({
+    required this.rank,
+    required this.name,
+    required this.points,
+    required this.isMe,
+  });
 
   final int rank;
-  final _Ranked entry;
+  final String name;
+  final int points;
+  final bool isMe;
 
   Color get _medalColor => switch (rank) {
         1 => const Color(0xFFFFD700),
@@ -200,7 +203,7 @@ class _RankTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: entry.isMe
+      color: isMe
           ? AppColors.primary.withValues(alpha: 0.10)
           : Theme.of(context).colorScheme.surface,
       margin: const EdgeInsets.only(bottom: 8),
@@ -226,7 +229,7 @@ class _RankTile extends StatelessWidget {
               radius: 18,
               backgroundColor: AppColors.secondary.withValues(alpha: 0.15),
               child: Text(
-                entry.name.characters.first,
+                name.isEmpty ? '?' : name.characters.first,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: AppColors.secondary,
@@ -236,18 +239,16 @@ class _RankTile extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                entry.name,
+                name,
                 style: TextStyle(
-                  fontWeight:
-                      entry.isMe ? FontWeight.bold : FontWeight.w500,
+                  fontWeight: isMe ? FontWeight.bold : FontWeight.w500,
                 ),
               ),
             ),
-            const Icon(Icons.stars_rounded,
-                color: AppColors.accent, size: 18),
+            const Icon(Icons.stars_rounded, color: AppColors.accent, size: 18),
             const SizedBox(width: 4),
             Text(
-              '${entry.points}',
+              '$points',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],

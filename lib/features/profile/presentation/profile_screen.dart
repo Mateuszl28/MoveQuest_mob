@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/locale/locale_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../account/account_controller.dart';
 import '../../activity/application/activity_controller.dart';
 import '../../points/points_controller.dart';
 import '../../quest/application/quest_controller.dart';
@@ -38,6 +39,8 @@ class ProfileScreen extends ConsumerWidget {
     final points = ref.watch(totalPointsProvider);
     final completedQuests = ref.watch(completedQuestCountProvider);
     final activity = ref.watch(activityProvider).data;
+    final customName = ref.watch(profileNameProvider);
+    final displayName = customName ?? l10n.profileName;
 
     final level = points ~/ _pointsPerLevel + 1;
     final xpInLevel = points % _pointsPerLevel;
@@ -73,10 +76,22 @@ class ProfileScreen extends ConsumerWidget {
                       size: 48, color: AppColors.primary),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  l10n.profileName,
-                  style: theme.textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      displayName,
+                      style: theme.textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      onPressed: () =>
+                          _editName(context, ref, customName ?? '', l10n),
+                    ),
+                  ],
                 ),
                 Text(
                   l10n.profileLevelSubtitle(level),
@@ -149,6 +164,42 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _editName(
+    BuildContext context,
+    WidgetRef ref,
+    String initial,
+    AppLocalizations l10n,
+  ) async {
+    final controller = TextEditingController(text: initial);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.profileEditName),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(hintText: l10n.profileNameHint),
+          onSubmitted: (value) => Navigator.pop(ctx, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: Text(l10n.commonSave),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result != null && result.trim().isNotEmpty) {
+      await ref.read(profileNameProvider.notifier).setName(result);
+    }
   }
 }
 
