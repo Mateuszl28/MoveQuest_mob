@@ -11,8 +11,8 @@ const double kQuestCompletionRadiusMeters = 50;
 final questProvider =
     NotifierProvider<QuestController, List<Quest>>(QuestController.new);
 
-/// Łączna liczba punktów zdobytych za ukończone questy.
-final totalPointsProvider = Provider<int>((ref) {
+/// Liczba punktów zdobytych za ukończone questy.
+final questPointsProvider = Provider<int>((ref) {
   return ref
       .watch(questProvider)
       .where((q) => q.completed)

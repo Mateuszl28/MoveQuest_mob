@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../activity/application/activity_controller.dart';
 import '../../activity/domain/activity_data.dart';
-import '../../quest/application/quest_controller.dart';
+import '../../points/points_controller.dart';
 
 /// Ekran „Dziś" – pulpit dzienny z danymi aktywności zbieranymi na żywo.
 class HomeScreen extends ConsumerWidget {

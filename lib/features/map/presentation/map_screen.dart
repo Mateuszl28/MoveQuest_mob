@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../quest/application/quest_controller.dart';
 import '../../quest/domain/quest.dart';
+import '../../workout/application/workout_controller.dart';
 import '../application/location_controller.dart';
 
 /// Wygląd questu danego rodzaju (tytuł, kolor, ikona).
@@ -85,6 +87,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final l10n = AppLocalizations.of(context);
     final location = ref.watch(locationProvider);
     final quests = ref.watch(questProvider);
+    final workout = ref.watch(workoutProvider);
 
     // Wyśrodkuj mapę i zakotwicz questy przy pierwszym odczycie pozycji.
     ref.listen(locationProvider, (previous, next) {
@@ -114,6 +117,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.movequest.movequest_mob',
               ),
+              if (workout.route.length >= 2)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: workout.route,
+                      strokeWidth: 5,
+                      color: AppColors.primary,
+                    ),
+                  ],
+                ),
               if (location.position != null)
                 MarkerLayer(
                   markers: [
@@ -155,9 +168,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _InfoPill(
-                    icon: Icons.explore,
-                    label: l10n.mapQuestsNearby(quests.length),
+                  Row(
+                    children: [
+                      _InfoPill(
+                        icon: Icons.explore,
+                        label: l10n.mapQuestsNearby(quests.length),
+                      ),
+                      const Spacer(),
+                      _CircleButton(
+                        loading: location.status == LocationStatus.loading,
+                        onTap: () => _recenter(location),
+                      ),
+                    ],
                   ),
                   if (location.status == LocationStatus.permissionRequired ||
                       location.status == LocationStatus.serviceDisabled) ...[
@@ -168,17 +190,47 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
             ),
           ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: const _WorkoutPanel(),
+              ),
+            ),
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _recenter(location),
-        child: location.status == LocationStatus.loading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.my_location),
+    );
+  }
+}
+
+/// Okrągły przycisk „moja lokalizacja" w rogu mapy.
+class _CircleButton extends StatelessWidget {
+  const _CircleButton({required this.onTap, this.loading = false});
+
+  final VoidCallback onTap;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      shape: const CircleBorder(),
+      elevation: 3,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: loading
+              ? const Padding(
+                  padding: EdgeInsets.all(13),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.my_location, color: AppColors.secondary),
+        ),
       ),
     );
   }
@@ -434,6 +486,127 @@ class _LocationBanner extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+String _formatDuration(Duration d) {
+  final minutes = d.inMinutes;
+  final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+  return '$minutes:$seconds';
+}
+
+String _formatPace(Duration d, double km) {
+  if (km < 0.05 || d.inSeconds == 0) return '—';
+  final secPerKm = d.inSeconds / km;
+  final minutes = secPerKm ~/ 60;
+  final seconds = (secPerKm % 60).round().toString().padLeft(2, '0');
+  return '$minutes:$seconds';
+}
+
+/// Panel treningu na dole mapy: start albo statystyki na żywo + stop.
+class _WorkoutPanel extends ConsumerWidget {
+  const _WorkoutPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final workout = ref.watch(workoutProvider);
+    final location = ref.watch(locationProvider);
+
+    // Pokazuj panel tylko, gdy mamy lokalizację (lub trwa nagrywanie).
+    if (!workout.isRecording && location.status != LocationStatus.tracking) {
+      return const SizedBox.shrink();
+    }
+
+    final localeName = Localizations.localeOf(context).toString();
+    final kmFmt = NumberFormat('#,##0.00', localeName);
+
+    if (!workout.isRecording) {
+      return FilledButton.icon(
+        onPressed: () => ref.read(workoutProvider.notifier).start(),
+        icon: const Icon(Icons.play_arrow),
+        label: Text(l10n.workoutStart),
+      );
+    }
+
+    return Card(
+      color: Theme.of(context).colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _WorkoutStat(
+                  value: _formatDuration(workout.elapsed),
+                  label: l10n.workoutTime,
+                ),
+                _WorkoutStat(
+                  value: '${kmFmt.format(workout.distanceKm)} km',
+                  label: l10n.statDistance,
+                ),
+                _WorkoutStat(
+                  value: _formatPace(workout.elapsed, workout.distanceKm),
+                  label: l10n.workoutPace,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.danger,
+                ),
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final summary =
+                      await ref.read(workoutProvider.notifier).stop();
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        l10n.workoutSavedToast(
+                          kmFmt.format(summary.distanceKm),
+                          summary.points,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.stop),
+                label: Text(l10n.workoutStop),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkoutStat extends StatelessWidget {
+  const _WorkoutStat({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+        ),
+      ],
     );
   }
 }

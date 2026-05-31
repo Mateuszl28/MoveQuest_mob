@@ -57,6 +57,17 @@
   "@questCompletedToast": {
     "placeholders": { "points": { "type": "int" } }
   },
+  "workoutStart": "Start workout",
+  "workoutStop": "Stop",
+  "workoutTime": "Time",
+  "workoutPace": "Pace",
+  "workoutSavedToast": "Workout saved! {distance} km • +{points} pts",
+  "@workoutSavedToast": {
+    "placeholders": {
+      "distance": { "type": "String" },
+      "points": { "type": "int" }
+    }
+  },
 
   "challengesTitle": "Challenges",
   "challenge1Title": "10,000 steps week",

@@ -5,6 +5,7 @@ import '../../../core/locale/locale_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../activity/application/activity_controller.dart';
+import '../../points/points_controller.dart';
 import '../../quest/application/quest_controller.dart';
 
 /// Odznaka użytkownika (etykieta, ikona, kolor, czy odblokowana).
