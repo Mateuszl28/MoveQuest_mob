@@ -1,52 +1,52 @@
 # MoveQuest 📍🏃
 
-Mobilna aplikacja (Flutter) łącząca **fitness i grywalizację**, **questy w terenie oparte na lokalizacji (GPS)** oraz **rywalizację ze znajomymi**. Ruszaj się w realnym świecie, zdobywaj punkty, odblokowuj odznaki i ścigaj się w rankingach.
+A Flutter mobile app that blends **fitness & gamification**, **location-based quests in the real world (GPS)**, and **social competition**. Move in the real world, earn points, unlock badges, and climb the leaderboards.
 
-## Główne filary
+## Core pillars
 
-- **Dziś** – pulpit dzienny: kroki, dystans, kalorie, dzienny cel i aktywne questy.
-- **Mapa** – questy w terenie na mapie (OpenStreetMap), nawigacja do punktów.
-- **Wyzwania** – wyzwania grupowe i ranking znajomych.
-- **Profil** – poziom, doświadczenie (XP) i odznaki.
+- **Today** – daily dashboard: steps, distance, calories, daily goal, and active quests.
+- **Map** – location-based quests on a map (OpenStreetMap), navigate to points.
+- **Challenges** – group challenges and a friends leaderboard.
+- **Profile** – level, experience (XP), and badges.
 
-## Stos technologiczny
+## Tech stack
 
-| Obszar | Technologia |
+| Area | Technology |
 |---|---|
 | Framework | Flutter 3.41 / Dart 3.11 |
-| Stan | [Riverpod](https://riverpod.dev) (`flutter_riverpod`) |
-| Nawigacja | [go_router](https://pub.dev/packages/go_router) (StatefulShellRoute) |
-| Mapy | [flutter_map](https://pub.dev/packages/flutter_map) + OpenStreetMap (bez klucza API) |
-| Lokalizacja | [geolocator](https://pub.dev/packages/geolocator) |
-| Dane lokalne | [shared_preferences](https://pub.dev/packages/shared_preferences) |
+| State | [Riverpod](https://riverpod.dev) (`flutter_riverpod`) |
+| Navigation | [go_router](https://pub.dev/packages/go_router) (StatefulShellRoute) |
+| Maps | [flutter_map](https://pub.dev/packages/flutter_map) + OpenStreetMap (no API key) |
+| Location | [geolocator](https://pub.dev/packages/geolocator) |
+| Local storage | [shared_preferences](https://pub.dev/packages/shared_preferences) |
 
-## Struktura projektu
+## Project structure
 
 ```
 lib/
-├── main.dart                 # punkt wejścia (ProviderScope)
-├── app.dart                  # MaterialApp.router + motyw
+├── main.dart                 # entry point (ProviderScope)
+├── app.dart                  # MaterialApp.router + theme
 ├── core/
-│   ├── theme/                # kolory i motyw Material 3
-│   ├── router/               # konfiguracja go_router
-│   └── widgets/              # powłoka z dolną nawigacją
-└── features/                 # moduły funkcjonalne (feature-first)
-    ├── home/                 # ekran „Dziś"
-    ├── map/                  # questy na mapie
-    ├── challenges/           # wyzwania i ranking
-    └── profile/              # profil, poziom, odznaki
+│   ├── theme/                # colors and Material 3 theme
+│   ├── router/               # go_router configuration
+│   └── widgets/              # shell with bottom navigation
+└── features/                 # feature-first modules
+    ├── home/                 # "Today" screen
+    ├── map/                  # quests on the map
+    ├── challenges/           # challenges and leaderboard
+    └── profile/              # profile, level, badges
 ```
 
-## Uruchomienie
+## Getting started
 
 ```bash
-flutter pub get        # na tej maszynie: w razie błędu "_temp in use" użyj: flutter pub get --offline
-flutter run            # uruchom na podłączonym urządzeniu/emulatorze
-flutter analyze        # analiza statyczna
-flutter test           # testy
+flutter pub get        # on this machine: if you hit a "_temp in use" error, run: flutter pub get --offline
+flutter run            # run on a connected device/emulator
+flutter analyze        # static analysis
+flutter test           # tests
 ```
 
 ## Status
 
-🚧 Wczesny etap — działający szkielet UI z nawigacją i przykładowymi danymi.
-Kolejne kroki: realne źródła danych (kroki/GPS), backend, autoryzacja, logika questów.
+🚧 Early stage — a working UI skeleton with navigation and sample data.
+Next steps: real data sources (steps/GPS), backend, authentication, quest logic.
