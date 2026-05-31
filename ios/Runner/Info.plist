@@ -6,6 +6,8 @@
 	<true/>
 	<key>NSMotionUsageDescription</key>
 	<string>MoveQuest uses motion data to count your steps and track activity live.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>MoveQuest uses your location to show where you are and to find quests near you.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

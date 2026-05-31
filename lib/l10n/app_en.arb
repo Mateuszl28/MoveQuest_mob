@@ -43,6 +43,9 @@
   "mapQuestRiversideRun": "Riverside run",
   "mapQuestDescription": "Reach this location to complete the quest and earn points.",
   "mapNavigateToQuest": "Navigate to quest",
+  "mapPermissionRequired": "Allow location access to see where you are.",
+  "mapServiceDisabled": "Turn on location services to see your position.",
+  "mapEnableLocation": "Enable location",
 
   "challengesTitle": "Challenges",
   "challenge1Title": "10,000 steps week",

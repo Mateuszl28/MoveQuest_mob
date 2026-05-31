@@ -3,6 +3,9 @@
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
     <!-- Pobieranie kafelków mapy (OpenStreetMap) -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Aktualna lokalizacja na mapie (questy w terenie) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <application
         android:label="MoveQuest"

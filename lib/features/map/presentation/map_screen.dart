@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
+import '../application/location_controller.dart';
 
 /// Punkt questu na mapie (model tymczasowy – docelowo z backendu).
 class _MapQuest {
@@ -22,21 +25,22 @@ class _MapQuest {
   final IconData icon;
 }
 
-/// Ekran „Mapa" – questy w terenie oparte na lokalizacji (OpenStreetMap).
-class MapScreen extends StatefulWidget {
+/// Ekran „Mapa" – aktualna lokalizacja użytkownika + questy w terenie (OSM).
+class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
 
   static const String path = '/map';
 
   @override
-  State<MapScreen> createState() => _MapScreenState();
+  ConsumerState<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
+class _MapScreenState extends ConsumerState<MapScreen> {
   final MapController _controller = MapController();
+  bool _centeredOnUser = false;
 
-  // Centrum startowe – Warszawa (placeholder do czasu wpięcia GPS).
-  static const LatLng _initialCenter = LatLng(52.2297, 21.0122);
+  // Centrum startowe – Warszawa (do czasu pierwszego odczytu GPS).
+  static const LatLng _fallbackCenter = LatLng(52.2297, 21.0122);
 
   List<_MapQuest> _buildQuests(AppLocalizations l10n) => [
         _MapQuest(
@@ -113,10 +117,28 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  void _recenter(LocationState location) {
+    if (location.position != null) {
+      _controller.move(location.position!, 16);
+    } else {
+      ref.read(locationProvider.notifier).retry();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final quests = _buildQuests(l10n);
+    final location = ref.watch(locationProvider);
+
+    // Wyśrodkuj mapę na użytkowniku przy pierwszym odczycie pozycji.
+    ref.listen(locationProvider, (previous, next) {
+      if (!_centeredOnUser && next.position != null) {
+        _centeredOnUser = true;
+        _controller.move(next.position!, 16);
+      }
+    });
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       body: Stack(
@@ -124,7 +146,7 @@ class _MapScreenState extends State<MapScreen> {
           FlutterMap(
             mapController: _controller,
             options: const MapOptions(
-              initialCenter: _initialCenter,
+              initialCenter: _fallbackCenter,
               initialZoom: 14,
               minZoom: 3,
               maxZoom: 18,
@@ -135,6 +157,17 @@ class _MapScreenState extends State<MapScreen> {
                     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.movequest.movequest_mob',
               ),
+              if (location.position != null)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: location.position!,
+                      width: 28,
+                      height: 28,
+                      child: const _UserLocationDot(),
+                    ),
+                  ],
+                ),
               MarkerLayer(
                 markers: [
                   for (final quest in quests)
@@ -155,42 +188,143 @@ class _MapScreenState extends State<MapScreen> {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _InfoPill(
+                    icon: Icons.explore,
+                    label: l10n.mapQuestsNearby(quests.length),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.explore, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.mapQuestsNearby(quests.length),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                ),
+                  if (location.status == LocationStatus.permissionRequired ||
+                      location.status == LocationStatus.serviceDisabled) ...[
+                    const SizedBox(height: 10),
+                    _LocationBanner(status: location.status),
+                  ],
+                ],
               ),
             ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _controller.move(_initialCenter, 14),
-        child: const Icon(Icons.my_location),
+        onPressed: () => _recenter(location),
+        child: location.status == LocationStatus.loading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.my_location),
+      ),
+    );
+  }
+}
+
+/// Niebieska kropka oznaczająca pozycję użytkownika.
+class _UserLocationDot extends StatelessWidget {
+  const _UserLocationDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.secondary.withValues(alpha: 0.25),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: AppColors.secondary,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: const [
+              BoxShadow(
+                  color: Colors.black26, blurRadius: 4, offset: Offset(0, 1)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Baner zachęcający do włączenia lokalizacji / nadania uprawnienia.
+class _LocationBanner extends ConsumerWidget {
+  const _LocationBanner({required this.status});
+
+  final LocationStatus status;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final message = status == LocationStatus.serviceDisabled
+        ? l10n.mapServiceDisabled
+        : l10n.mapPermissionRequired;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.location_off, color: AppColors.warning),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(message, style: const TextStyle(fontSize: 13)),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: () async {
+              if (status == LocationStatus.serviceDisabled) {
+                await Geolocator.openLocationSettings();
+              } else {
+                await Geolocator.openAppSettings();
+              }
+              ref.read(locationProvider.notifier).retry();
+            },
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+            ),
+            child: Text(l10n.mapEnableLocation),
+          ),
+        ],
       ),
     );
   }
