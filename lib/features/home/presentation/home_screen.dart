@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../activity/application/activity_controller.dart';
 import '../../activity/domain/activity_data.dart';
+import '../../quest/application/quest_controller.dart';
 
 /// Ekran „Dziś" – pulpit dzienny z danymi aktywności zbieranymi na żywo.
 class HomeScreen extends ConsumerWidget {
@@ -16,6 +17,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(activityProvider);
+    final points = ref.watch(totalPointsProvider);
     return SafeArea(
       child: switch (state.status) {
         ActivityStatus.loading => const Center(
@@ -23,16 +25,17 @@ class HomeScreen extends ConsumerWidget {
           ),
         ActivityStatus.permissionRequired => const _PermissionPrompt(),
         ActivityStatus.unavailable => const _UnavailableMessage(),
-        ActivityStatus.tracking => _Dashboard(data: state.data),
+        ActivityStatus.tracking => _Dashboard(data: state.data, points: points),
       },
     );
   }
 }
 
 class _Dashboard extends StatelessWidget {
-  const _Dashboard({required this.data});
+  const _Dashboard({required this.data, required this.points});
 
   final ActivityData data;
+  final int points;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +47,6 @@ class _Dashboard extends StatelessWidget {
 
     final goalProgress = (data.steps / kDailyStepGoal).clamp(0.0, 1.0);
     final remaining = (kDailyStepGoal - data.steps).clamp(0, kDailyStepGoal);
-    final points = data.steps ~/ 10;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),

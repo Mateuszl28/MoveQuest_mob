@@ -46,6 +46,17 @@
   "mapPermissionRequired": "Allow location access to see where you are.",
   "mapServiceDisabled": "Turn on location services to see your position.",
   "mapEnableLocation": "Enable location",
+  "questComplete": "Complete quest",
+  "questCompletedBadge": "Completed",
+  "questTooFar": "Get closer to complete this quest.",
+  "questDistanceAway": "{meters} m away",
+  "@questDistanceAway": {
+    "placeholders": { "meters": { "type": "int", "format": "decimalPattern" } }
+  },
+  "questCompletedToast": "Quest completed! +{points} pts",
+  "@questCompletedToast": {
+    "placeholders": { "points": { "type": "int" } }
+  },
 
   "challengesTitle": "Challenges",
   "challenge1Title": "10,000 steps week",
@@ -78,6 +89,7 @@
     }
   },
   "profileStatQuests": "Quests",
+  "profileStatPoints": "Points",
   "profileStatTotal": "Total",
   "profileStatStreak": "Day streak",
   "profileBadges": "Badges",

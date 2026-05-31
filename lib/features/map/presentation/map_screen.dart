@@ -6,26 +6,32 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../quest/application/quest_controller.dart';
+import '../../quest/domain/quest.dart';
 import '../application/location_controller.dart';
 
-/// Punkt questu na mapie (model tymczasowy – docelowo z backendu).
-class _MapQuest {
-  const _MapQuest({
-    required this.title,
-    required this.position,
-    required this.reward,
-    required this.color,
-    required this.icon,
-  });
-
-  final String title;
-  final LatLng position;
-  final int reward;
-  final Color color;
-  final IconData icon;
+/// Wygląd questu danego rodzaju (tytuł, kolor, ikona).
+({String title, Color color, IconData icon}) _questMeta(
+  AppLocalizations l10n,
+  QuestKind kind,
+) {
+  return switch (kind) {
+    QuestKind.parkTreasure =>
+      (title: l10n.mapQuestParkTreasure, color: AppColors.accent, icon: Icons.park),
+    QuestKind.viewpoint => (
+        title: l10n.mapQuestViewpoint,
+        color: AppColors.secondary,
+        icon: Icons.visibility
+      ),
+    QuestKind.riversideRun => (
+        title: l10n.mapQuestRiversideRun,
+        color: AppColors.primary,
+        icon: Icons.directions_run
+      ),
+  };
 }
 
-/// Ekran „Mapa" – aktualna lokalizacja użytkownika + questy w terenie (OSM).
+/// Ekran „Mapa" – aktualna lokalizacja + questy w terenie z ukończaniem (OSM).
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
 
@@ -42,78 +48,27 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   // Centrum startowe – Warszawa (do czasu pierwszego odczytu GPS).
   static const LatLng _fallbackCenter = LatLng(52.2297, 21.0122);
 
-  List<_MapQuest> _buildQuests(AppLocalizations l10n) => [
-        _MapQuest(
-          title: l10n.mapQuestParkTreasure,
-          position: const LatLng(52.2350, 21.0050),
-          reward: 200,
-          color: AppColors.accent,
-          icon: Icons.park,
-        ),
-        _MapQuest(
-          title: l10n.mapQuestViewpoint,
-          position: const LatLng(52.2270, 21.0200),
-          reward: 150,
-          color: AppColors.secondary,
-          icon: Icons.visibility,
-        ),
-        _MapQuest(
-          title: l10n.mapQuestRiversideRun,
-          position: const LatLng(52.2230, 21.0300),
-          reward: 300,
-          color: AppColors.primary,
-          icon: Icons.directions_run,
-        ),
-      ];
+  // Punkt zakotwiczenia questów (ustawiany przy pierwszym odczycie pozycji),
+  // dzięki czemu questy są blisko użytkownika i nie „skaczą".
+  LatLng? _anchor;
 
-  void _showQuest(_MapQuest quest) {
-    final l10n = AppLocalizations.of(context);
+  // Przesunięcia questów względem zakotwiczenia (w stopniach ~ metry).
+  static const Map<QuestKind, ({double dLat, double dLng})> _offsets = {
+    QuestKind.parkTreasure: (dLat: 0.00022, dLng: 0.00012), // ~28 m
+    QuestKind.viewpoint: (dLat: 0.0011, dLng: -0.0009), // ~150 m
+    QuestKind.riversideRun: (dLat: -0.0032, dLng: 0.0021), // ~390 m
+  };
+
+  LatLng _positionFor(QuestKind kind, LatLng anchor) {
+    final o = _offsets[kind]!;
+    return LatLng(anchor.latitude + o.dLat, anchor.longitude + o.dLng);
+  }
+
+  void _openQuestSheet(QuestKind kind, LatLng position) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: quest.color.withValues(alpha: 0.15),
-                  child: Icon(quest.icon, color: quest.color),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    quest.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Chip(
-                  avatar: const Icon(Icons.stars_rounded,
-                      color: AppColors.accent, size: 18),
-                  label: Text('+${quest.reward}'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              l10n.mapQuestDescription,
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.navigation),
-              label: Text(l10n.mapNavigateToQuest),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) => _QuestSheet(kind: kind, position: position),
     );
   }
 
@@ -128,16 +83,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final quests = _buildQuests(l10n);
     final location = ref.watch(locationProvider);
+    final quests = ref.watch(questProvider);
 
-    // Wyśrodkuj mapę na użytkowniku przy pierwszym odczycie pozycji.
+    // Wyśrodkuj mapę i zakotwicz questy przy pierwszym odczycie pozycji.
     ref.listen(locationProvider, (previous, next) {
       if (!_centeredOnUser && next.position != null) {
         _centeredOnUser = true;
+        setState(() => _anchor = next.position);
         _controller.move(next.position!, 16);
       }
     });
+
+    final anchor = _anchor ?? location.position ?? _fallbackCenter;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -153,8 +111,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate:
-                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.movequest.movequest_mob',
               ),
               if (location.position != null)
@@ -171,16 +128,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               MarkerLayer(
                 markers: [
                   for (final quest in quests)
-                    Marker(
-                      point: quest.position,
-                      width: 48,
-                      height: 48,
-                      child: GestureDetector(
-                        onTap: () => _showQuest(quest),
-                        child:
-                            _QuestMarker(color: quest.color, icon: quest.icon),
-                      ),
-                    ),
+                    () {
+                      final pos = _positionFor(quest.kind, anchor);
+                      final meta = _questMeta(l10n, quest.kind);
+                      return Marker(
+                        point: pos,
+                        width: 48,
+                        height: 48,
+                        child: GestureDetector(
+                          onTap: () => _openQuestSheet(quest.kind, pos),
+                          child: _QuestMarker(
+                            color: meta.color,
+                            icon: meta.icon,
+                            completed: quest.completed,
+                          ),
+                        ),
+                      );
+                    }(),
                 ],
               ),
             ],
@@ -215,6 +179,150 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.my_location),
+      ),
+    );
+  }
+}
+
+/// Arkusz szczegółów questu z liczeniem dystansu i przyciskiem ukończenia.
+class _QuestSheet extends ConsumerWidget {
+  const _QuestSheet({required this.kind, required this.position});
+
+  final QuestKind kind;
+  final LatLng position;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final quest = ref.watch(questProvider).firstWhere((q) => q.kind == kind);
+    final userPos = ref.watch(locationProvider).position;
+    final meta = _questMeta(l10n, kind);
+
+    final double? distance = userPos == null
+        ? null
+        : Geolocator.distanceBetween(
+            userPos.latitude,
+            userPos.longitude,
+            position.latitude,
+            position.longitude,
+          );
+    final canComplete = !quest.completed &&
+        distance != null &&
+        distance <= kQuestCompletionRadiusMeters;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: meta.color.withValues(alpha: 0.15),
+                child: Icon(meta.icon, color: meta.color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  meta.title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Chip(
+                avatar: const Icon(Icons.stars_rounded,
+                    color: AppColors.accent, size: 18),
+                label: Text('+${quest.reward}'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.mapQuestDescription,
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          if (quest.completed)
+            _CompletedRow(label: l10n.questCompletedBadge)
+          else ...[
+            if (distance != null)
+              Row(
+                children: [
+                  const Icon(Icons.straighten,
+                      size: 18, color: AppColors.textSecondary),
+                  const SizedBox(width: 6),
+                  Text(
+                    l10n.questDistanceAway(distance.round()),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: canComplete
+                  ? () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+                      final reward = quest.reward;
+                      await ref.read(questProvider.notifier).complete(kind);
+                      navigator.pop();
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(l10n.questCompletedToast(reward))),
+                      );
+                    }
+                  : null,
+              icon: const Icon(Icons.check_circle_outline),
+              label: Text(l10n.questComplete),
+            ),
+            if (!canComplete)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  l10n.questTooFar,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CompletedRow extends StatelessWidget {
+  const _CompletedRow({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: AppColors.success),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.success,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -331,23 +439,29 @@ class _LocationBanner extends ConsumerWidget {
 }
 
 class _QuestMarker extends StatelessWidget {
-  const _QuestMarker({required this.color, required this.icon});
+  const _QuestMarker({
+    required this.color,
+    required this.icon,
+    this.completed = false,
+  });
 
   final Color color;
   final IconData icon;
+  final bool completed;
 
   @override
   Widget build(BuildContext context) {
+    final fill = completed ? AppColors.success : color;
     return Container(
       decoration: BoxDecoration(
-        color: color,
+        color: fill,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: const [
           BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2)),
         ],
       ),
-      child: Icon(icon, color: Colors.white, size: 22),
+      child: Icon(completed ? Icons.check : icon, color: Colors.white, size: 22),
     );
   }
 }

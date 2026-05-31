@@ -4,41 +4,56 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/locale/locale_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../activity/application/activity_controller.dart';
+import '../../quest/application/quest_controller.dart';
 
-/// Odznaka zdobyta przez użytkownika (model tymczasowy).
+/// Odznaka użytkownika (etykieta, ikona, kolor, czy odblokowana).
 class _Badge {
-  const _Badge(this.label, this.icon, this.color, {this.unlocked = true});
+  const _Badge(this.label, this.icon, this.color, {required this.unlocked});
   final String label;
   final IconData icon;
   final Color color;
   final bool unlocked;
 }
 
+/// Liczba punktów potrzebna na jeden poziom.
+const int _pointsPerLevel = 500;
+
 /// Ekran „Profil" – poziom, doświadczenie, odznaki i wybór języka.
+/// Poziom, punkty, ukończone questy i odznaki wynikają z realnego stanu.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   static const String path = '/profile';
 
-  static const int _level = 7;
-
-  List<_Badge> _badges(AppLocalizations l10n) => [
-        _Badge(l10n.badgeFirstStep, Icons.directions_walk, AppColors.primary),
-        _Badge(l10n.badgeExplorer, Icons.explore, AppColors.secondary),
-        _Badge(l10n.badgeMarathoner, Icons.local_fire_department,
-            AppColors.warning),
-        _Badge(l10n.badgeEarlyBird, Icons.wb_sunny, AppColors.accent),
-        _Badge(l10n.badgeMaster, Icons.workspace_premium, AppColors.danger,
-            unlocked: false),
-        _Badge(l10n.badgeLegend, Icons.military_tech, AppColors.primaryDark,
-            unlocked: false),
-      ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final badges = _badges(l10n);
+
+    final points = ref.watch(totalPointsProvider);
+    final completedQuests = ref.watch(completedQuestCountProvider);
+    final activity = ref.watch(activityProvider).data;
+
+    final level = points ~/ _pointsPerLevel + 1;
+    final xpInLevel = points % _pointsPerLevel;
+
+    final badges = <_Badge>[
+      _Badge(l10n.badgeFirstStep, Icons.directions_walk, AppColors.primary,
+          unlocked: activity.steps > 0),
+      _Badge(l10n.badgeExplorer, Icons.explore, AppColors.secondary,
+          unlocked: completedQuests >= 1),
+      _Badge(l10n.badgeMarathoner, Icons.local_fire_department,
+          AppColors.warning,
+          unlocked: activity.steps >= kDailyStepGoal),
+      _Badge(l10n.badgeEarlyBird, Icons.wb_sunny, AppColors.accent,
+          unlocked: activity.activeMinutes >= 30),
+      _Badge(l10n.badgeMaster, Icons.workspace_premium, AppColors.danger,
+          unlocked: completedQuests >= 3),
+      _Badge(l10n.badgeLegend, Icons.military_tech, AppColors.primaryDark,
+          unlocked: points >= 1000),
+    ];
+
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -49,8 +64,7 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 CircleAvatar(
                   radius: 44,
-                  backgroundColor:
-                      AppColors.primary.withValues(alpha: 0.15),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                   child: const Icon(Icons.person,
                       size: 48, color: AppColors.primary),
                 ),
@@ -61,25 +75,38 @@ class ProfileScreen extends ConsumerWidget {
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  l10n.profileLevelSubtitle(_level),
+                  l10n.profileLevelSubtitle(level),
                   style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 20),
-          const _LevelCard(level: _level, xp: 2540, xpForNext: 3000),
+          _LevelCard(
+            level: level,
+            xp: xpInLevel,
+            xpForNext: _pointsPerLevel,
+          ),
           const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
-                child: _MiniStat(value: '38', label: l10n.profileStatQuests),
+                child: _MiniStat(
+                  value: '$completedQuests',
+                  label: l10n.profileStatQuests,
+                ),
               ),
               Expanded(
-                child: _MiniStat(value: '142 km', label: l10n.profileStatTotal),
+                child: _MiniStat(
+                  value: '$points',
+                  label: l10n.profileStatPoints,
+                ),
               ),
               Expanded(
-                child: _MiniStat(value: '12', label: l10n.profileStatStreak),
+                child: _MiniStat(
+                  value: '${activity.steps}',
+                  label: l10n.statSteps,
+                ),
               ),
             ],
           ),
@@ -156,7 +183,7 @@ class _LevelCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final progress = xp / xpForNext;
+    final progress = xpForNext == 0 ? 0.0 : xp / xpForNext;
     return Card(
       child: Container(
         decoration: const BoxDecoration(
