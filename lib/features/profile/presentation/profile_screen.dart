@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/locale/locale_controller.dart';
 import '../../../core/theme/app_colors.dart';
@@ -7,6 +8,8 @@ import '../../../l10n/app_localizations.dart';
 import '../../activity/application/activity_controller.dart';
 import '../../points/points_controller.dart';
 import '../../quest/application/quest_controller.dart';
+import '../../workout/application/workout_history_controller.dart';
+import '../../workout/domain/workout_record.dart';
 
 /// Odznaka użytkownika (etykieta, ikona, kolor, czy odblokowana).
 class _Badge {
@@ -129,6 +132,14 @@ class ProfileScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           Text(
+            l10n.profileWorkouts,
+            style: theme.textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          const _WorkoutHistory(),
+          const SizedBox(height: 24),
+          Text(
             l10n.profileLanguage,
             style: theme.textTheme.titleMedium
                 ?.copyWith(fontWeight: FontWeight.bold),
@@ -166,6 +177,107 @@ class _LanguageSelector extends ConsumerWidget {
       onSelectionChanged: (selection) {
         ref.read(localeProvider.notifier).setLocale(Locale(selection.first));
       },
+    );
+  }
+}
+
+/// Lista ostatnich treningów (lub komunikat, gdy brak).
+class _WorkoutHistory extends ConsumerWidget {
+  const _WorkoutHistory();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final history = ref.watch(workoutHistoryProvider);
+
+    if (history.isEmpty) {
+      return Card(
+        color: Theme.of(context).colorScheme.surface,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.directions_run, color: AppColors.textSecondary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.workoutsEmpty,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        for (final record in history.take(5))
+          _WorkoutHistoryItem(record: record),
+      ],
+    );
+  }
+}
+
+class _WorkoutHistoryItem extends StatelessWidget {
+  const _WorkoutHistoryItem({required this.record});
+
+  final WorkoutRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    final localeName = Localizations.localeOf(context).toString();
+    final dateFmt = DateFormat.MMMd(localeName).add_Hm();
+    final kmFmt = NumberFormat('#,##0.00', localeName);
+    final d = record.duration;
+    final duration =
+        '${d.inMinutes}:${d.inSeconds.remainder(60).toString().padLeft(2, '0')}';
+
+    return Card(
+      color: Theme.of(context).colorScheme.surface,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.directions_run, color: AppColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    dateFmt.format(record.date),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${kmFmt.format(record.distanceKm)} km • $duration',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.stars_rounded, color: AppColors.accent, size: 18),
+            const SizedBox(width: 4),
+            Text(
+              '+${record.points}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

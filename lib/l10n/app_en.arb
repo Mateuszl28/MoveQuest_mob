@@ -110,9 +110,23 @@
   "badgeEarlyBird": "Early bird",
   "badgeMaster": "Master",
   "badgeLegend": "Legend",
+  "profileWorkouts": "Recent workouts",
+  "workoutsEmpty": "No workouts yet — start one on the map.",
   "profileLanguage": "Language",
   "languageEnglish": "English",
   "languagePolish": "Polski",
+
+  "notifChannelName": "Reminders",
+  "notifChannelDescription": "Daily goal reminders and celebrations",
+  "notifReminderTitle": "Time to move! 🚶",
+  "notifReminderBody": "Don't forget your daily step goal.",
+  "notifGoalReachedTitle": "Daily goal reached! 🎉",
+  "notifGoalReachedBody": "Amazing — you hit your step goal today!",
+  "notifQuestTitle": "Quest completed!",
+  "notifQuestBody": "+{points} points earned.",
+  "@notifQuestBody": {
+    "placeholders": { "points": { "type": "int" } }
+  },
 
   "notFound": "Not found: {uri}",
   "@notFound": {

@@ -73,9 +73,20 @@
   "badgeEarlyBird": "Ranny ptaszek",
   "badgeMaster": "Mistrz",
   "badgeLegend": "Legenda",
+  "profileWorkouts": "Ostatnie treningi",
+  "workoutsEmpty": "Brak treningów — rozpocznij na mapie.",
   "profileLanguage": "Język",
   "languageEnglish": "English",
   "languagePolish": "Polski",
+
+  "notifChannelName": "Przypomnienia",
+  "notifChannelDescription": "Przypomnienia o dziennym celu i gratulacje",
+  "notifReminderTitle": "Czas się ruszyć! 🚶",
+  "notifReminderBody": "Nie zapomnij o swoim dziennym celu kroków.",
+  "notifGoalReachedTitle": "Dzienny cel osiągnięty! 🎉",
+  "notifGoalReachedBody": "Świetnie — osiągnąłeś dziś swój cel kroków!",
+  "notifQuestTitle": "Quest ukończony!",
+  "notifQuestBody": "Zdobyto +{points} pkt.",
 
   "notFound": "Nie znaleziono: {uri}"
 }

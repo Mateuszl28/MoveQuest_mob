@@ -7,6 +7,8 @@ import 'package:latlong2/latlong.dart';
 
 import '../../map/application/location_controller.dart';
 import '../../points/points_controller.dart';
+import '../domain/workout_record.dart';
+import 'workout_history_controller.dart';
 
 /// Liczba punktów przyznawana za każdy przebyty kilometr treningu.
 const int kPointsPerKm = 100;
@@ -129,6 +131,14 @@ class WorkoutController extends Notifier<WorkoutState> {
       points: points,
     );
     await ref.read(bonusPointsProvider.notifier).add(points);
+    await ref.read(workoutHistoryProvider.notifier).add(
+          WorkoutRecord(
+            timestampMs: DateTime.now().millisecondsSinceEpoch,
+            distanceKm: state.distanceKm,
+            durationSeconds: state.elapsed.inSeconds,
+            points: points,
+          ),
+        );
     state = const WorkoutState();
     return summary;
   }

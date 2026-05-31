@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/locale/locale_controller.dart';
+import '../../notifications/notification_service.dart';
 import '../domain/activity_data.dart';
 
 /// Dzienny cel kroków używany na pulpicie.
@@ -113,7 +114,17 @@ class ActivityController extends Notifier<ActivityState> {
     }
 
     _todaySteps = (total - baseline).clamp(0, total);
+    _maybeCelebrateGoal();
     _emit();
+  }
+
+  /// Wyświetla gratulacje raz dziennie po osiągnięciu celu kroków.
+  void _maybeCelebrateGoal() {
+    if (_todaySteps < kDailyStepGoal) return;
+    final today = _dayKey(DateTime.now());
+    if (_prefs.getString('goal_notified_date') == today) return;
+    _prefs.setString('goal_notified_date', today);
+    ref.read(notificationServiceProvider).showGoalReached();
   }
 
   void _onPedestrianStatus(PedestrianStatus event) {
